@@ -1,13 +1,10 @@
 import React from 'react';
-import { Package, Download, Upload, Plus, Moon, Sun, CheckCircle2 } from 'lucide-react';
+import { Package, Plus, Moon, Sun } from 'lucide-react';
 
 export default function Header({ 
-  onDownload, 
-  onLoad, 
   onAddClick, 
   darkMode, 
-  toggleTheme,
-  isSaving
+  toggleTheme
 }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -18,21 +15,9 @@ export default function Header({
           </div>
           Inventory<span className="text-indigo-600">Manager</span>
         </h1>
-        
-        {/* Status Indicator */}
-        <div className={`mt-2 font-medium flex items-center gap-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <span>Overview of your stock & sales performance</span>
-          <span className="mx-2 text-gray-300">|</span>
-          {isSaving ? (
-            <span className="text-indigo-500 flex items-center gap-1 text-sm font-bold animate-pulse">
-              Saving...
-            </span>
-          ) : (
-            <span className="text-emerald-500 flex items-center gap-1 text-sm font-bold">
-              <CheckCircle2 size={14} /> Auto-Save Active
-            </span>
-          )}
-        </div>
+        <p className={`mt-2 font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Overview of your stock & sales performance
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -48,31 +33,6 @@ export default function Header({
         >
           {darkMode ? <Sun size={20} /> : <Moon size={20} />}
         </button>
-
-        {/* Backup (Export) */}
-        <button 
-          onClick={onDownload} 
-          className={`px-4 py-2.5 border font-semibold rounded-xl transition flex items-center gap-2 shadow-sm ${
-            darkMode 
-              ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' 
-              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-          }`}
-          title="Download a backup copy to your computer"
-        >
-          <Download size={18} /> <span className="hidden sm:inline">Backup</span>
-        </button>
-        
-        {/* Restore (Import) */}
-        <label className={`px-4 py-2.5 border font-semibold rounded-xl transition flex items-center gap-2 shadow-sm cursor-pointer ${
-            darkMode 
-              ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' 
-              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-          }`}
-          title="Restore data from a backup file"
-        >
-          <Upload size={18} /> <span className="hidden sm:inline">Restore</span>
-          <input type="file" accept=".json" onChange={onLoad} className="hidden" />
-        </label>
 
         {/* Add Product */}
         <button 

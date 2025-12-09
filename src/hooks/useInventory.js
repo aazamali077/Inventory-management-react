@@ -1,128 +1,128 @@
 import { useState, useEffect } from 'react';
 
+const API_URL = 'http://localhost:5000/api/products';
+
 export const useInventory = () => {
-  // 1. AUTOLOAD: Initialize state directly from Local Storage
-  const [products, setProducts] = useState(() => {
-    try {
-      const savedData = localStorage.getItem('inventory_app_data');
-      return savedData ? JSON.parse(savedData) : [];
-    } catch (error) {
-      console.error("Error loading auto-saved data:", error);
-      return [];
-    }
-  });
+  const [products, setProducts] = useState([]);
 
-  const [isSaving, setIsSaving] = useState(false);
-
-  // 2. AUTOSAVE: Write to Local Storage whenever products change
+  // --- 1. FETCH (GET) ---
   useEffect(() => {
-    setIsSaving(true);
-    localStorage.setItem('inventory_app_data', JSON.stringify(products));
-    
-    // Tiny delay to let the UI show "Saving..."
-    const timer = setTimeout(() => setIsSaving(false), 800);
-    return () => clearTimeout(timer);
-  }, [products]);
+    fetchProducts();
+  }, []);
 
-  // --- Manual Export (Backup) ---
-  const downloadInventoryFile = () => {
-    const dataStr = JSON.stringify(products, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `inventory-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // --- Manual Import (Restore) ---
-  const loadInventoryFile = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const loadedData = JSON.parse(e.target.result);
-          setProducts(loadedData);
-          alert('Backup loaded successfully!');
-        } catch (error) {
-          alert('Error loading file. Invalid JSON.');
-        }
-      };
-      reader.readAsText(file);
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      const formattedData = data.map(item => ({ ...item, id: item._id }));
+      setProducts(formattedData);
+    } catch (error) {
+      console.error("Error fetching products:", error);
     }
   };
 
-  // --- CRUD Operations ---
-  const addProduct = (newProduct) => {
-    const product = {
-      id: Date.now().toString(),
-      ...newProduct,
-      price: parseFloat(newProduct.price) || 0,
-      totalStock: parseInt(newProduct.totalStock) || 0,
-      lowStockThreshold: parseInt(newProduct.lowStockThreshold) || 10,
-      restockQuantity: parseInt(newProduct.restockQuantity) || 50,
-      sales: [],
-      createdAt: new Date().toISOString()
-    };
-    setProducts(prev => [...prev, product]);
+  // --- 2. ADD (POST) ---
+  const addProduct = async (newProduct) => {
+    try {
+      const productPayload = {
+        ...newProduct,
+        price: parseFloat(newProduct.price) || 0,
+        totalStock: parseInt(newProduct.totalStock) || 0,
+        lowStockThreshold: parseInt(newProduct.lowStockThreshold) || 10,
+        restockQuantity: parseInt(newProduct.restockQuantity) || 50,
+        sales: []
+      };
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productPayload),
+      });
+
+      if (response.ok) {
+        fetchProducts(); 
+      }
+    } catch (error) {
+      console.error("Error adding product:", error);
+    }
+  };
+
+  // --- 3. UPDATE (PUT) ---
+  const updateProductInBackend = async (id, updatedFields) => {
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedFields),
+      });
+      // Optimistic Update
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedFields } : p));
+    } catch (error) {
+      console.error("Error updating product:", error);
+    }
   };
 
   const updateProduct = (updatedProduct) => {
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+    updateProductInBackend(updatedProduct.id, updatedProduct);
   };
 
-  const deleteProduct = (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+  // --- 4. DELETE (DELETE) ---
+  const deleteProduct = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+
+    try {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
       setProducts(prev => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error("Error deleting product:", error);
     }
   };
 
+  // --- 5. RESTOCK ---
   const restockProduct = (id) => {
-    setProducts(prev => prev.map(product => {
-      if (product.id === id) {
-        return { ...product, totalStock: product.totalStock + product.restockQuantity };
-      }
-      return product;
-    }));
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    const updatedData = { 
+      totalStock: product.totalStock + product.restockQuantity 
+    };
+    
+    updateProductInBackend(id, updatedData);
   };
 
+  // --- 6. RECORD SALE ---
   const recordSale = (saleData) => {
-    setProducts(prev => prev.map(product => {
-      if (product.id === saleData.productId) {
-        const newStock = product.totalStock - parseInt(saleData.quantity);
-        if (newStock < 0) {
-          alert('Not enough stock available!');
-          return product;
-        }
-        return {
-          ...product,
-          totalStock: newStock,
-          sales: [...product.sales, {
-            id: Date.now().toString(),
-            platform: saleData.platform,
-            quantity: parseInt(saleData.quantity),
-            date: saleData.date,
-            timestamp: new Date().toISOString()
-          }]
-        };
-      }
-      return product;
-    }));
+    const product = products.find(p => p.id === saleData.productId);
+    if (!product) return;
+
+    const newStock = product.totalStock - parseInt(saleData.quantity);
+    if (newStock < 0) {
+      alert('Not enough stock available!');
+      return;
+    }
+
+    const newSaleEntry = {
+      id: Date.now().toString(),
+      platform: saleData.platform,
+      quantity: parseInt(saleData.quantity),
+      date: saleData.date,
+      timestamp: new Date().toISOString()
+    };
+
+    const updatedData = {
+      totalStock: newStock,
+      sales: [...product.sales, newSaleEntry]
+    };
+
+    updateProductInBackend(saleData.productId, updatedData);
   };
 
   return {
     products,
-    isSaving,
     addProduct,
     updateProduct,
     deleteProduct,
     restockProduct,
-    recordSale,
-    downloadInventoryFile,
-    loadInventoryFile
+    recordSale
   };
 };

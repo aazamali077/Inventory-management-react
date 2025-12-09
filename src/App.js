@@ -14,29 +14,20 @@ export default function InventoryManagement() {
     updateProduct, 
     deleteProduct, 
     restockProduct, 
-    recordSale, 
-    downloadInventoryFile, 
-    loadInventoryFile,
-    isSaving,
-    fileHandle,
-    isFileSystemSupported,
-    connectToLocalFile
+    recordSale
   } = useInventory();
 
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [activeTab, setActiveTab] = useState('overall');
   const [darkMode, setDarkMode] = useState(true);
-  const [showFloatingBtn, setShowFloatingBtn] = useState(false); // State for floating button
+  const [showFloatingBtn, setShowFloatingBtn] = useState(false);
 
   const toggleTheme = () => setDarkMode(!darkMode);
 
-  // Scroll Listener to toggle Floating Button
   useEffect(() => {
     const handleScroll = () => {
-      // Show button if scrolled down more than 200px
       setShowFloatingBtn(window.scrollY > 200);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -62,20 +53,14 @@ export default function InventoryManagement() {
   ];
 
   return (
-    <div className={`min-h-screen p-6 font-sans transition-colors duration-300 relative ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen p-6 font-sans relative ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header */}
         <Header 
-          onDownload={downloadInventoryFile} 
-          onLoad={loadInventoryFile} 
           onAddClick={() => setShowAddProduct(true)} 
           darkMode={darkMode}
           toggleTheme={toggleTheme}
-          isSaving={isSaving}
-          fileHandle={fileHandle}
-          isFileSystemSupported={isFileSystemSupported}
-          onConnectFile={connectToLocalFile}
         />
 
         {/* Stats */}
@@ -84,7 +69,7 @@ export default function InventoryManagement() {
         {/* Main Content Area */}
         <div>
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 p-1 no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -114,10 +99,9 @@ export default function InventoryManagement() {
             />
           )}
 
-          {/* --- PRODUCT GRID SECTION --- */}
+          {/* Product Grid */}
           <div className="space-y-4">
             
-            {/* Title Section */}
             {products.length > 0 && (
                <div className="flex items-center gap-2 mb-4">
                  <Layers className={darkMode ? 'text-indigo-400' : 'text-indigo-600'} size={24} />
@@ -128,7 +112,6 @@ export default function InventoryManagement() {
                </div>
             )}
 
-            {/* The Grid (4 columns) */}
             {getFilteredProducts().length === 0 ? (
               <div className={`text-center py-16 rounded-3xl border border-dashed ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}>
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
@@ -157,7 +140,7 @@ export default function InventoryManagement() {
         </div>
       </div>
 
-      {/* --- FLOATING ACTION BUTTON (Visible on Scroll) --- */}
+      {/* Floating Add Button */}
       <button
         onClick={() => setShowAddProduct(true)}
         className={`fixed bottom-8 right-8 p-4 rounded-full shadow-2xl z-40 transition-all duration-300 transform flex items-center gap-2 font-bold ${
