@@ -52,6 +52,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 4. Open http://localhost:3000 to view it in your browser.
 
 ***Project Structure***
+
     ```bash
     src/
     ├── components/
@@ -64,6 +65,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
     │   └── useInventory.js    # Custom hook handling Logic, CRUD & Storage
     ├── App.js                 # Main Application Layout & Routing
     └── index.js               # Entry point
+
 
 ### 📖 How to Use
 **Adding Products:** Click the "New Product" button (or the floating + button on scroll). Enter details like Name, SKU, Category, Price, and Stock.
