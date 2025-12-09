@@ -52,17 +52,18 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 4. Open http://localhost:3000 to view it in your browser.
 
 ***Project Structure***
-src/
-├── components/
-│   ├── Header.js          # Navigation, Theme Toggle, Import/Export
-│   ├── StatsDashboard.js  # Revenue & Stock Statistics Cards
-│   ├── ProductCard.js     # Individual Product Display & Edit Logic
-│   ├── AddProductForm.js  # Modal for creating new items
-│   └── RecordSaleForm.js  # Form to log sales & update stock
-├── hooks/
-│   └── useInventory.js    # Custom hook handling Logic, CRUD & Storage
-├── App.js                 # Main Application Layout & Routing
-└── index.js               # Entry point
+    ```bash
+    src/
+    ├── components/
+    │   ├── Header.js          # Navigation, Theme Toggle, Import/Export
+    │   ├── StatsDashboard.js  # Revenue & Stock Statistics Cards
+    │   ├── ProductCard.js     # Individual Product Display & Edit Logic
+    │   ├── AddProductForm.js  # Modal for creating new items
+    │   └── RecordSaleForm.js  # Form to log sales & update stock
+    ├── hooks/
+    │   └── useInventory.js    # Custom hook handling Logic, CRUD & Storage
+    ├── App.js                 # Main Application Layout & Routing
+    └── index.js               # Entry point
 
 ### 📖 How to Use
 **Adding Products:** Click the "New Product" button (or the floating + button on scroll). Enter details like Name, SKU, Category, Price, and Stock.
