@@ -50,4 +50,38 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// ... existing routes ...
+
+// 5. DELETE A SPECIFIC SALE (Undo Sale)
+// URL: DELETE http://localhost:5000/api/products/:id/sales/:saleId
+router.delete('/:id/sales/:saleId', async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const saleId = req.params.saleId;
+
+    // 1. Find the product
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // 2. Find the sale to be deleted
+    const saleToDelete = product.sales.find(s => s.id === saleId);
+    if (!saleToDelete) return res.status(404).json({ message: "Sale record not found" });
+
+    // 3. Restore the stock (Reverse the sale)
+    product.totalStock += saleToDelete.quantity;
+
+    // 4. Remove the sale from the array
+    product.sales = product.sales.filter(s => s.id !== saleId);
+
+    // 5. Save changes
+    const updatedProduct = await product.save();
+    res.json(updatedProduct);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
+
 module.exports = router;
