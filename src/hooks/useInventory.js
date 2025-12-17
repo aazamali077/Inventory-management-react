@@ -5,7 +5,8 @@ const API_URL = 'http://localhost:5000/api/products';
 export const useInventory = () => {
   const [products, setProducts] = useState([]);
 
-  // ... existing fetchProducts ...
+  useEffect(() => { fetchProducts(); }, []);
+
   const fetchProducts = async () => {
     try {
       const response = await fetch(API_URL);
@@ -16,26 +17,78 @@ export const useInventory = () => {
       console.error("Error fetching products:", error);
     }
   };
-  
-  useEffect(() => { fetchProducts(); }, []);
 
-  // ... existing addProduct, updateProduct, deleteProduct, restockProduct ...
-  
-  // (Keep your existing functions here: addProduct, updateProduct, deleteProduct, etc.)
-  // I am hiding them to save space, but DO NOT DELETE THEM.
+  const addProduct = async (newProduct) => {
+    try {
+      const productPayload = {
+        ...newProduct,
+        price: parseFloat(newProduct.price) || 0,
+        totalStock: parseInt(newProduct.totalStock) || 0,
+        lowStockThreshold: parseInt(newProduct.lowStockThreshold) || 10,
+        restockQuantity: parseInt(newProduct.restockQuantity) || 50,
+        sales: []
+      };
 
-  const addProduct = async (newProduct) => { /* ... existing code ... */ };
-  const updateProduct = (updatedProduct) => { /* ... existing code ... */ };
-  const deleteProduct = async (id) => { /* ... existing code ... */ };
-  const restockProduct = (id) => { /* ... existing code ... */ };
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productPayload),
+      });
 
-  // ... existing recordSale ...
+      if (response.ok) {
+        fetchProducts(); 
+        return true; // Success
+      }
+    } catch (error) {
+      console.error("Error adding product:", error);
+      return false;
+    }
+  };
+
+  const updateProductInBackend = async (id, updatedFields) => {
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedFields),
+      });
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedFields } : p));
+      return true;
+    } catch (error) {
+      console.error("Error updating product:", error);
+      return false;
+    }
+  };
+
+  const updateProduct = (updatedProduct) => {
+    return updateProductInBackend(updatedProduct.id, updatedProduct);
+  };
+
+  const deleteProduct = async (id) => {
+    // Note: window.confirm removed. UI handles it now.
+    try {
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      setProducts(prev => prev.filter(p => p.id !== id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      return false;
+    }
+  };
+
+  const restockProduct = (id) => {
+    const product = products.find(p => p.id === id);
+    if (!product) return false;
+    const updatedData = { totalStock: product.totalStock + product.restockQuantity };
+    return updateProductInBackend(id, updatedData);
+  };
+
   const recordSale = (saleData) => {
     const product = products.find(p => p.id === saleData.productId);
-    if (!product) return;
+    if (!product) return false;
 
     const newStock = product.totalStock - parseInt(saleData.quantity);
-    if (newStock < 0) return alert('Not enough stock!');
+    if (newStock < 0) return 'low_stock'; // Special return for error handling
 
     const newSaleEntry = {
       id: Date.now().toString(),
@@ -50,42 +103,25 @@ export const useInventory = () => {
       sales: [...product.sales, newSaleEntry]
     };
 
-    // Helper to update backend
-    const updateBackend = async () => {
-        try {
-            await fetch(`${API_URL}/${saleData.productId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData),
-            });
-            // Update local state
-            setProducts(prev => prev.map(p => p.id === saleData.productId ? { ...p, ...updatedData } : p));
-        } catch (err) { console.error(err); }
-    };
-    updateBackend();
+    return updateProductInBackend(saleData.productId, updatedData);
   };
 
-  // --- NEW: DELETE SALE FUNCTION ---
   const deleteSale = async (productId, saleId) => {
-    if (!window.confirm('Are you sure you want to delete this sale record? Stock will be restored.')) return;
-
+     // Note: window.confirm removed. UI handles it now.
     try {
       const response = await fetch(`${API_URL}/${productId}/sales/${saleId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // The server returns the updated product with stock restored
         const updatedProductData = await response.json();
-        // Fix _id to id mapping for the single item
         const fixedProduct = { ...updatedProductData, id: updatedProductData._id };
-        
-        // Update state
         setProducts(prev => prev.map(p => p.id === productId ? fixedProduct : p));
+        return true;
       }
     } catch (error) {
       console.error("Error deleting sale:", error);
-      alert("Failed to delete sale");
+      return false;
     }
   };
 
@@ -96,6 +132,6 @@ export const useInventory = () => {
     deleteProduct,
     restockProduct,
     recordSale,
-    deleteSale // Export the new function
+    deleteSale
   };
 };

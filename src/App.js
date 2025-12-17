@@ -6,7 +6,9 @@ import AddProductForm from './components/AddProductForm';
 import SalesHistoryModal from './components/SalesHistoryModal';
 import RecordSaleModal from './components/RecordSaleModal';
 import ProductCard from './components/ProductCard';
-import { Layers, Package, ShoppingCart, Plus, History, ClipboardList, TrendingUp } from 'lucide-react';
+import NotificationToast from './components/NotificationToast'; // New
+import ConfirmModal from './components/ConfirmModal'; // New
+import { Layers, Package, ShoppingCart, Plus, History, ClipboardList } from 'lucide-react';
 
 export default function InventoryManagement() {
   const { 
@@ -16,21 +18,33 @@ export default function InventoryManagement() {
     deleteProduct, 
     restockProduct, 
     recordSale, 
-    downloadInventoryFile, 
-    loadInventoryFile,
-    isSaving,
-    fileHandle,
-    isFileSystemSupported,
-    connectToLocalFile,
     deleteSale
   } = useInventory();
 
+  // UI States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRecordSale, setShowRecordSale] = useState(false);
   const [activeTab, setActiveTab] = useState('overall');
   const [darkMode, setDarkMode] = useState(true);
   const [showFloatingBtn, setShowFloatingBtn] = useState(false);
+
+  // --- NEW: Notification State ---
+  const [toast, setToast] = useState(null); // { message, type }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  // --- NEW: Confirmation Modal State ---
+  const [confirmState, setConfirmState] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null 
+  });
+
+  const closeConfirm = () => setConfirmState(prev => ({ ...prev, isOpen: false }));
 
   const toggleTheme = () => setDarkMode(!darkMode);
 
@@ -41,6 +55,70 @@ export default function InventoryManagement() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // --- LOGIC HANDLERS (Wrappers) ---
+
+  const handleAddProduct = async (data) => {
+    const success = await addProduct(data);
+    if (success) {
+      setShowAddProduct(false);
+      showToast('Product added successfully!');
+    } else {
+      showToast('Failed to add product', 'error');
+    }
+  };
+
+  const handleRecordSale = async (data) => {
+    const result = await recordSale(data);
+    if (result === 'low_stock') {
+      showToast('Error: Not enough stock!', 'error');
+    } else if (result) {
+      // Close modal is handled inside the modal component, 
+      // but we can trigger toast here if we pass this function down
+      showToast('Sale recorded successfully!');
+    } else {
+      showToast('Failed to record sale', 'error');
+    }
+  };
+
+  const handleRestock = async (id) => {
+    const success = await restockProduct(id);
+    if (success) showToast('Stock updated successfully!');
+  };
+
+  const handleUpdateProduct = async (data) => {
+    const success = await updateProduct(data);
+    if (success) showToast('Product updated successfully!');
+  };
+
+  // 1. DELETE PRODUCT REQUEST
+  const requestDeleteProduct = (id) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Delete Product?',
+      message: 'This will permanently remove the product and its history.',
+      onConfirm: async () => {
+        const success = await deleteProduct(id);
+        if (success) showToast('Product deleted');
+        closeConfirm();
+      }
+    });
+  };
+
+  // 2. DELETE SALE REQUEST
+  const requestDeleteSale = (productId, saleId) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Undo Sale?',
+      message: 'This will remove the sale record and restore the stock.',
+      onConfirm: async () => {
+        const success = await deleteSale(productId, saleId);
+        if (success) showToast('Sale removed & stock restored');
+        closeConfirm();
+      }
+    });
+  };
+
 
   const getFilteredProducts = () => {
     switch (activeTab) {
@@ -64,28 +142,40 @@ export default function InventoryManagement() {
 
   return (
     <div className={`min-h-screen p-6 font-sans relative ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+      
+      {/* --- NOTIFICATION TOAST --- */}
+      {toast && (
+        <NotificationToast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
+
+      {/* --- CONFIRMATION MODAL --- */}
+      <ConfirmModal 
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+        darkMode={darkMode}
+      />
+
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header */}
         <Header 
-          onDownload={downloadInventoryFile} 
-          onLoad={loadInventoryFile} 
           onAddClick={() => setShowAddProduct(true)} 
           darkMode={darkMode}
           toggleTheme={toggleTheme}
-          isSaving={isSaving}
-          fileHandle={fileHandle}
-          isFileSystemSupported={isFileSystemSupported}
-          onConnectFile={connectToLocalFile}
         />
 
         {/* Stats */}
         <StatsDashboard products={products} darkMode={darkMode} />
 
-        {/* --- NEW ACTION BAR (Between Stats and Filters) --- */}
+        {/* Action Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            {/* Record Sale - Big Action Card */}
             <button 
               onClick={() => setShowRecordSale(true)}
               className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl text-left flex items-center justify-between ${
@@ -105,7 +195,6 @@ export default function InventoryManagement() {
               </div>
             </button>
 
-            {/* Sales History - Big Action Card */}
             <button 
               onClick={() => setShowHistory(true)}
               className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl text-left flex items-center justify-between ${
@@ -124,14 +213,12 @@ export default function InventoryManagement() {
                  <History size={24} />
               </div>
             </button>
-
         </div>
 
 
         {/* Main Content Area */}
         <div>
-          
-          {/* TABS (Filters) - Now separated from buttons */}
+          {/* Tabs */}
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <div className="flex gap-2 overflow-x-auto pb-2 p-1 no-scrollbar w-full">
               {tabs.map((tab) => (
@@ -149,7 +236,6 @@ export default function InventoryManagement() {
               ))}
             </div>
             
-            {/* Live Count Badge (Moved here) */}
             {products.length > 0 && (
                 <div className={`hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full border ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600'}`}>
                     <Layers size={16} />
@@ -162,7 +248,7 @@ export default function InventoryManagement() {
           {showRecordSale && (
             <RecordSaleModal 
               products={products} 
-              onRecordSale={recordSale} 
+              onRecordSale={handleRecordSale} // Use Wrapper
               onClose={() => setShowRecordSale(false)}
               darkMode={darkMode} 
             />
@@ -170,7 +256,7 @@ export default function InventoryManagement() {
 
           {showAddProduct && (
             <AddProductForm 
-              onSave={(data) => { addProduct(data); setShowAddProduct(false); }} 
+              onSave={handleAddProduct} // Use Wrapper
               onCancel={() => setShowAddProduct(false)} 
               darkMode={darkMode}
             />
@@ -180,14 +266,13 @@ export default function InventoryManagement() {
             <SalesHistoryModal 
               products={products}
               onClose={() => setShowHistory(false)}
-              onDeleteSale={deleteSale}
+              onDeleteSale={requestDeleteSale} // Use Wrapper
               darkMode={darkMode}
             />
           )}
 
           {/* --- PRODUCT GRID --- */}
           <div className="space-y-4">
-            
             {getFilteredProducts().length === 0 ? (
               <div className={`text-center py-16 rounded-3xl border border-dashed ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}>
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
@@ -204,9 +289,9 @@ export default function InventoryManagement() {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onUpdate={updateProduct}
-                    onDelete={deleteProduct}
-                    onRestock={restockProduct}
+                    onUpdate={handleUpdateProduct} // Use Wrapper
+                    onDelete={requestDeleteProduct} // Use Wrapper
+                    onRestock={handleRestock} // Use Wrapper
                     darkMode={darkMode}
                   />
                 ))}

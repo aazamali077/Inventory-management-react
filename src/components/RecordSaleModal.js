@@ -11,9 +11,14 @@ export default function RecordSaleModal({ products, onRecordSale, onClose, darkM
 
   const handleSubmit = () => {
     if (!form.productId) return alert('Please select a product');
+    
+    // 1. Save data
     onRecordSale(form);
-    // Optional: Close modal automatically after success, or keep open for rapid entry
-    // onClose(); 
+    
+    // 2. Close the popup (Fixed)
+    onClose(); 
+    
+    // 3. Reset form
     setForm(prev => ({ ...prev, quantity: 1, productId: '' })); 
   };
 
@@ -71,14 +76,14 @@ export default function RecordSaleModal({ products, onRecordSale, onClose, darkM
             </div>
 
             {/* Platform Selection */}
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-6">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Platform</label>
               <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                 {platforms.map((p) => (
                   <button
                     key={p}
                     onClick={() => setForm({...form, platform: p})}
-                    className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
                       form.platform === p 
                         ? (darkMode ? 'bg-gray-700 text-indigo-400 shadow-sm' : 'bg-white text-indigo-600 shadow-sm ring-1 ring-gray-100')
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
@@ -91,12 +96,14 @@ export default function RecordSaleModal({ products, onRecordSale, onClose, darkM
             </div>
 
             {/* Quantity & Date */}
-            <div className="lg:col-span-5 flex gap-3">
+            <div className="lg:col-span-6 flex gap-3">
               <div className="flex-1">
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Qty</label>
                 <div className="relative">
                   <input 
-                    type="number" min="1" value={form.quantity} 
+                    type="number" 
+                    min="1" 
+                    value={form.quantity} 
                     onChange={(e) => setForm({...form, quantity: e.target.value})} 
                     className={`w-full p-3 pl-9 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium ${
                       darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
@@ -109,7 +116,8 @@ export default function RecordSaleModal({ products, onRecordSale, onClose, darkM
                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Date</label>
                 <div className="relative">
                   <input 
-                    type="date" value={form.date} 
+                    type="date" 
+                    value={form.date} 
                     onChange={(e) => setForm({...form, date: e.target.value})} 
                     className={`w-full p-3 pl-9 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium text-sm ${
                       darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
