@@ -6,9 +6,10 @@ import AddProductForm from './components/AddProductForm';
 import SalesHistoryModal from './components/SalesHistoryModal';
 import RecordSaleModal from './components/RecordSaleModal';
 import ProductCard from './components/ProductCard';
-import NotificationToast from './components/NotificationToast'; // New
-import ConfirmModal from './components/ConfirmModal'; // New
-import { Layers, Package, ShoppingCart, Plus, History, ClipboardList } from 'lucide-react';
+import NotificationToast from './components/NotificationToast';
+import ConfirmModal from './components/ConfirmModal';
+import ProfitCalculator from './components/ProfitCalculator';
+import { Layers, Package, ShoppingCart, Plus, History, ClipboardList, Calculator } from 'lucide-react';
 
 export default function InventoryManagement() {
   const { 
@@ -21,22 +22,18 @@ export default function InventoryManagement() {
     deleteSale
   } = useInventory();
 
+  
   // UI States
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRecordSale, setShowRecordSale] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false); // Calculator State
   const [activeTab, setActiveTab] = useState('overall');
   const [darkMode, setDarkMode] = useState(true);
   const [showFloatingBtn, setShowFloatingBtn] = useState(false);
 
-  // --- NEW: Notification State ---
+  // Notification & Modal States
   const [toast, setToast] = useState(null); // { message, type }
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
-  // --- NEW: Confirmation Modal State ---
   const [confirmState, setConfirmState] = useState({ 
     isOpen: false, 
     title: '', 
@@ -44,10 +41,14 @@ export default function InventoryManagement() {
     onConfirm: null 
   });
 
-  const closeConfirm = () => setConfirmState(prev => ({ ...prev, isOpen: false }));
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
 
+  const closeConfirm = () => setConfirmState(prev => ({ ...prev, isOpen: false }));
   const toggleTheme = () => setDarkMode(!darkMode);
 
+  // Scroll Listener for Floating Button
   useEffect(() => {
     const handleScroll = () => {
       setShowFloatingBtn(window.scrollY > 200);
@@ -73,8 +74,6 @@ export default function InventoryManagement() {
     if (result === 'low_stock') {
       showToast('Error: Not enough stock!', 'error');
     } else if (result) {
-      // Close modal is handled inside the modal component, 
-      // but we can trigger toast here if we pass this function down
       showToast('Sale recorded successfully!');
     } else {
       showToast('Failed to record sale', 'error');
@@ -91,7 +90,6 @@ export default function InventoryManagement() {
     if (success) showToast('Product updated successfully!');
   };
 
-  // 1. DELETE PRODUCT REQUEST
   const requestDeleteProduct = (id) => {
     setConfirmState({
       isOpen: true,
@@ -105,7 +103,6 @@ export default function InventoryManagement() {
     });
   };
 
-  // 2. DELETE SALE REQUEST
   const requestDeleteSale = (productId, saleId) => {
     setConfirmState({
       isOpen: true,
@@ -118,7 +115,6 @@ export default function InventoryManagement() {
       }
     });
   };
-
 
   const getFilteredProducts = () => {
     switch (activeTab) {
@@ -133,9 +129,9 @@ export default function InventoryManagement() {
 
   const tabs = [
     { id: 'overall', label: 'All Products' },
-    // { id: 'amazon', label: 'Amazon' },
-    // { id: 'flipkart', label: 'Flipkart' },
-    // { id: 'meesho', label: 'Meesho' },
+    { id: 'amazon', label: 'Amazon' },
+    { id: 'flipkart', label: 'Flipkart' },
+    { id: 'meesho', label: 'Meesho' },
     { id: 'low', label: 'Low Stock' },
     { id: 'out', label: 'Out of Stock' },
   ];
@@ -248,7 +244,7 @@ export default function InventoryManagement() {
           {showRecordSale && (
             <RecordSaleModal 
               products={products} 
-              onRecordSale={handleRecordSale} // Use Wrapper
+              onRecordSale={handleRecordSale}
               onClose={() => setShowRecordSale(false)}
               darkMode={darkMode} 
             />
@@ -256,7 +252,7 @@ export default function InventoryManagement() {
 
           {showAddProduct && (
             <AddProductForm 
-              onSave={handleAddProduct} // Use Wrapper
+              onSave={handleAddProduct}
               onCancel={() => setShowAddProduct(false)} 
               darkMode={darkMode}
             />
@@ -266,7 +262,7 @@ export default function InventoryManagement() {
             <SalesHistoryModal 
               products={products}
               onClose={() => setShowHistory(false)}
-              onDeleteSale={requestDeleteSale} // Use Wrapper
+              onDeleteSale={requestDeleteSale}
               darkMode={darkMode}
             />
           )}
@@ -289,9 +285,9 @@ export default function InventoryManagement() {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onUpdate={handleUpdateProduct} // Use Wrapper
-                    onDelete={requestDeleteProduct} // Use Wrapper
-                    onRestock={handleRestock} // Use Wrapper
+                    onUpdate={handleUpdateProduct}
+                    onDelete={requestDeleteProduct}
+                    onRestock={handleRestock}
                     darkMode={darkMode}
                   />
                 ))}
@@ -301,7 +297,30 @@ export default function InventoryManagement() {
         </div>
       </div>
 
-      {/* Floating Add Button */}
+      {/* --- FLOATING COMPONENTS --- */}
+
+      {/* Profit Calculator Modal */}
+      <ProfitCalculator 
+        isOpen={showCalculator} 
+        onClose={() => setShowCalculator(false)} 
+        darkMode={darkMode} 
+      />
+
+      {/* Floating Calculator Button (Bottom Left) */}
+      <button
+        onClick={() => setShowCalculator(!showCalculator)} // ✅ TOGGLE LOGIC
+        className={`fixed bottom-8 left-8 p-4 rounded-full shadow-2xl z-50 transition-all duration-300 transform hover:scale-110 flex items-center gap-2 font-bold ${
+          darkMode 
+            ? 'bg-gray-800 text-indigo-400 border border-gray-700 hover:bg-gray-700' 
+            : 'bg-white text-indigo-600 border border-indigo-100 hover:bg-gray-50'
+        } ${showCalculator ? 'ring-4 ring-indigo-500/50 scale-110' : ''}`} // Add ring when active
+        title="Profit Calculator"
+      >
+        <Calculator size={24} />
+        <span className="hidden md:inline">Calculator</span>
+      </button>
+
+      {/* Floating Add Product Button (Bottom Right) */}
       <button
         onClick={() => setShowAddProduct(true)}
         className={`fixed bottom-8 right-8 p-4 rounded-full shadow-2xl z-40 transition-all duration-300 transform flex items-center gap-2 font-bold ${
