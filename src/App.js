@@ -129,9 +129,9 @@ export default function InventoryManagement() {
 
   const tabs = [
     { id: 'overall', label: 'All Products' },
-    { id: 'amazon', label: 'Amazon' },
-    { id: 'flipkart', label: 'Flipkart' },
-    { id: 'meesho', label: 'Meesho' },
+    // { id: 'amazon', label: 'Amazon' },
+    // { id: 'flipkart', label: 'Flipkart' },
+    // { id: 'meesho', label: 'Meesho' },
     { id: 'low', label: 'Low Stock' },
     { id: 'out', label: 'Out of Stock' },
   ];

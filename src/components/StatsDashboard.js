@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Package, AlertTriangle, TrendingDown, IndianRupee, ShoppingBag } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, IndianRupee, ShoppingBag, Trophy, Crown, Sparkles } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
-// --- SUB-COMPONENTS (Moved Outside to prevent re-renders) ---
+// --- SUB-COMPONENTS ---
 
 const COLORS = ['#F97316', '#3B82F6', '#EC4899', '#A855F7']; 
 
-// 1. Custom Label
+// 1. Custom Label (Pie Chart)
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }) => {
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -27,7 +27,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, val
   );
 };
 
-// 2. Custom Tooltip
+// 2. Custom Tooltip (Pie Chart)
 const CustomTooltip = ({ active, payload, isCurrency, darkMode }) => {
   if (active && payload && payload.length) {
     const data = payload[0];
@@ -48,8 +48,6 @@ const ChartCard = ({ title, totalValue, data, icon: Icon, colorClass, bgClass, i
   <div className={`col-span-1 md:col-span-2 p-6 rounded-3xl border shadow-sm relative overflow-visible flex flex-col sm:flex-row items-center justify-between gap-6 ${
     darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
   }`}>
-    
-    {/* Left: Text Info */}
     <div className="z-10 flex flex-col justify-between h-full w-full sm:w-1/2">
       <div>
         <div className="flex items-center gap-2 mb-2">
@@ -62,8 +60,6 @@ const ChartCard = ({ title, totalValue, data, icon: Icon, colorClass, bgClass, i
           {isCurrency ? '₹' : ''}{totalValue.toLocaleString()}
         </h3>
       </div>
-      
-      {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-4">
         {data.map((entry, index) => (
           <div key={index} className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
@@ -73,8 +69,6 @@ const ChartCard = ({ title, totalValue, data, icon: Icon, colorClass, bgClass, i
         ))}
       </div>
     </div>
-
-    {/* Right: Pie Chart */}
     <div className="w-32 h-32 sm:w-40 sm:h-40 relative flex-shrink-0">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
@@ -87,7 +81,7 @@ const ChartCard = ({ title, totalValue, data, icon: Icon, colorClass, bgClass, i
             outerRadius={60} 
             fill="#8884d8"
             dataKey="value"
-            isAnimationActive={shouldAnimate} // Only animate on first load
+            isAnimationActive={shouldAnimate}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke={darkMode ? '#1f2937' : '#fff'} strokeWidth={2} />
@@ -118,15 +112,115 @@ const StatusCard = ({ title, value, icon: Icon, colorClass, bgClass, subTitle, d
   </div>
 );
 
+// 5. NEW: Top Products Grid (Now Wrapped in a Unified Card)
+const TopProductsCard = ({ products, darkMode }) => {
+  const rankedProducts = products
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      unitsSold: p.sales.reduce((acc, curr) => acc + curr.quantity, 0),
+      revenue: p.sales.reduce((acc, curr) => acc + (curr.quantity * p.price), 0),
+    }))
+    .filter(p => p.unitsSold > 0)
+    .sort((a, b) => b.unitsSold - a.unitsSold)
+    .slice(0, 6); // Top 6
+
+  const maxSold = rankedProducts.length > 0 ? rankedProducts[0].unitsSold : 1;
+
+  if (rankedProducts.length === 0) return null;
+
+  return (
+    // Main Wrapper Card (Matches Revenue Card Style)
+    <div className={`col-span-1 md:col-span-2 lg:col-span-4 p-6 rounded-3xl border shadow-sm ${
+      darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'
+    }`}>
+      
+      {/* Header inside the card */}
+      <div className="flex items-center gap-2 mb-6">
+        <div className={`p-2 rounded-xl ${darkMode ? 'bg-yellow-500/20 text-yellow-500' : 'bg-yellow-100 text-yellow-600'}`}>
+          <Trophy size={20} />
+        </div>
+        <div>
+           <h3 className={`text-lg font-extrabold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Top Performers</h3>
+           <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Your highest selling inventory</p>
+        </div>
+      </div>
+
+      {/* Grid of Inner Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {rankedProducts.map((product, index) => {
+          // Dynamic Styles for Top 3
+          const isGold = index === 0;
+          const isSilver = index === 1;
+          const isBronze = index === 2;
+          
+          let borderColor = darkMode ? 'border-gray-700' : 'border-gray-200';
+          let bgGradient = darkMode ? 'bg-gray-900/40' : 'bg-gray-50'; // Subtler inner bg
+          let badgeColor = darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500';
+
+          if (isGold) {
+            borderColor = 'border-yellow-500/30';
+            bgGradient = darkMode ? 'bg-gradient-to-br from-yellow-900/10 to-gray-800' : 'bg-gradient-to-br from-yellow-50 to-white';
+            badgeColor = 'bg-yellow-500 text-white shadow-yellow-500/20';
+          } else if (isSilver) {
+            borderColor = 'border-blue-400/30';
+            bgGradient = darkMode ? 'bg-gradient-to-br from-blue-900/10 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-white';
+            badgeColor = 'bg-gray-400 text-white';
+          } else if (isBronze) {
+            borderColor = 'border-orange-600/30';
+            bgGradient = darkMode ? 'bg-gradient-to-br from-orange-900/10 to-gray-800' : 'bg-gradient-to-br from-orange-50 to-white';
+            badgeColor = 'bg-orange-600 text-white';
+          }
+
+          const percent = (product.unitsSold / maxSold) * 100;
+
+          return (
+            <div 
+              key={product.id} 
+              className={`relative p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${bgGradient} ${borderColor}`}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center font-extrabold text-xs shadow-sm ${badgeColor}`}>
+                  {isGold ? <Crown size={12} /> : `#${index + 1}`}
+                </div>
+                {isGold && <Sparkles className="text-yellow-500 animate-pulse" size={14} />}
+              </div>
+
+              <h4 className={`font-bold text-sm mb-0.5 truncate ${darkMode ? 'text-white' : 'text-gray-900'}`} title={product.name}>
+                {product.name}
+              </h4>
+              <p className="text-[10px] text-gray-400 mb-3">Rev: ₹{product.revenue.toLocaleString()}</p>
+
+              {/* Progress Bar */}
+              <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 mb-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ${
+                    isGold ? 'bg-yellow-500' : isSilver ? 'bg-blue-400' : isBronze ? 'bg-orange-500' : 'bg-indigo-500'
+                  }`} 
+                  style={{ width: `${percent}%` }}
+                ></div>
+              </div>
+
+              <div className="flex justify-between items-end">
+                <span className={`text-xl font-extrabold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {product.unitsSold}
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 pb-1">Units</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 // --- MAIN COMPONENT ---
 
 export default function StatsDashboard({ products, darkMode }) {
   
-  // State to control animation
   const [shouldAnimate, setShouldAnimate] = useState(true);
 
-  // Turn off animation after 1.5 seconds so it doesn't run again on updates
   useEffect(() => {
     const timer = setTimeout(() => setShouldAnimate(false), 1500);
     return () => clearTimeout(timer);
@@ -173,6 +267,7 @@ export default function StatsDashboard({ products, darkMode }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       
+      {/* 1. REVENUE */}
       <ChartCard 
         title="Total Revenue"
         totalValue={totalRevenue}
@@ -185,6 +280,7 @@ export default function StatsDashboard({ products, darkMode }) {
         shouldAnimate={shouldAnimate}
       />
 
+      {/* 2. UNITS */}
       <ChartCard 
         title="Total Units Sold"
         totalValue={totalUnitsSold}
@@ -197,6 +293,10 @@ export default function StatsDashboard({ products, darkMode }) {
         shouldAnimate={shouldAnimate}
       />
 
+      {/* 3. TOP PRODUCTS (Now Unified Card) */}
+      <TopProductsCard products={products} darkMode={darkMode} />
+
+      {/* 4. STOCK STATUS */}
       <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatusCard 
           title="Current Stock" 
