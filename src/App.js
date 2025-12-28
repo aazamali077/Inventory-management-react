@@ -12,6 +12,8 @@ import ProfitCalculator from './components/ProfitCalculator';
 import { Layers, Package, ShoppingCart, Plus, History, ClipboardList, Calculator } from 'lucide-react';
 
 export default function InventoryManagement() {
+  
+  // No Auth State or Token needed anymore
   const { 
     products, 
     addProduct, 
@@ -22,18 +24,22 @@ export default function InventoryManagement() {
     deleteSale
   } = useInventory();
 
-  
-  // UI States
+  // --- UI STATES ---
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRecordSale, setShowRecordSale] = useState(false);
-  const [showCalculator, setShowCalculator] = useState(false); // Calculator State
+  const [showCalculator, setShowCalculator] = useState(false);
+  
+  // Edit State
+  const [editingProduct, setEditingProduct] = useState(null); 
+
+  // View/Theme States
   const [activeTab, setActiveTab] = useState('overall');
   const [darkMode, setDarkMode] = useState(true);
   const [showFloatingBtn, setShowFloatingBtn] = useState(false);
 
   // Notification & Modal States
-  const [toast, setToast] = useState(null); // { message, type }
+  const [toast, setToast] = useState(null); 
   const [confirmState, setConfirmState] = useState({ 
     isOpen: false, 
     title: '', 
@@ -41,31 +47,45 @@ export default function InventoryManagement() {
     onConfirm: null 
   });
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
+  const showToast = (message, type = 'success') => setToast({ message, type });
   const closeConfirm = () => setConfirmState(prev => ({ ...prev, isOpen: false }));
   const toggleTheme = () => setDarkMode(!darkMode);
 
-  // Scroll Listener for Floating Button
+  // Scroll Listener
   useEffect(() => {
-    const handleScroll = () => {
-      setShowFloatingBtn(window.scrollY > 200);
-    };
+    const handleScroll = () => setShowFloatingBtn(window.scrollY > 200);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // --- LOGIC HANDLERS (Wrappers) ---
+  // --- CRUD HANDLERS (Wrappers) ---
 
-  const handleAddProduct = async (data) => {
-    const success = await addProduct(data);
+  const openAddModal = () => {
+    setEditingProduct(null); 
+    setShowAddProduct(true);
+  };
+
+  const openEditModal = (product) => {
+    setEditingProduct(product); 
+    setShowAddProduct(true);
+  };
+
+  const handleSaveProduct = async (data) => {
+    let success = false;
+    
+    if (editingProduct) {
+      success = await updateProduct(data);
+      if (success) showToast('Product updated successfully!');
+    } else {
+      success = await addProduct(data);
+      if (success) showToast('Product added successfully!');
+    }
+
     if (success) {
       setShowAddProduct(false);
-      showToast('Product added successfully!');
+      setEditingProduct(null);
     } else {
-      showToast('Failed to add product', 'error');
+      showToast('Operation failed', 'error');
     }
   };
 
@@ -83,11 +103,6 @@ export default function InventoryManagement() {
   const handleRestock = async (id) => {
     const success = await restockProduct(id);
     if (success) showToast('Stock updated successfully!');
-  };
-
-  const handleUpdateProduct = async (data) => {
-    const success = await updateProduct(data);
-    if (success) showToast('Product updated successfully!');
   };
 
   const requestDeleteProduct = (id) => {
@@ -116,6 +131,7 @@ export default function InventoryManagement() {
     });
   };
 
+  // --- FILTER LOGIC ---
   const getFilteredProducts = () => {
     switch (activeTab) {
       case 'amazon': return products.filter(p => p.sales.some(s => s.platform === 'Amazon'));
@@ -129,49 +145,32 @@ export default function InventoryManagement() {
 
   const tabs = [
     { id: 'overall', label: 'All Products' },
-    // { id: 'amazon', label: 'Amazon' },
-    // { id: 'flipkart', label: 'Flipkart' },
-    // { id: 'meesho', label: 'Meesho' },
+    { id: 'amazon', label: 'Amazon' },
+    { id: 'flipkart', label: 'Flipkart' },
+    { id: 'meesho', label: 'Meesho' },
     { id: 'low', label: 'Low Stock' },
     { id: 'out', label: 'Out of Stock' },
   ];
 
+  // --- MAIN APP RENDER ---
   return (
     <div className={`min-h-screen p-6 font-sans relative ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       
-      {/* --- NOTIFICATION TOAST --- */}
-      {toast && (
-        <NotificationToast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
-
-      {/* --- CONFIRMATION MODAL --- */}
-      <ConfirmModal 
-        isOpen={confirmState.isOpen}
-        title={confirmState.title}
-        message={confirmState.message}
-        onConfirm={confirmState.onConfirm}
-        onCancel={closeConfirm}
-        darkMode={darkMode}
-      />
+      {/* Toast & Confirm Modal */}
+      {toast && <NotificationToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <ConfirmModal isOpen={confirmState.isOpen} title={confirmState.title} message={confirmState.message} onConfirm={confirmState.onConfirm} onCancel={closeConfirm} darkMode={darkMode} />
 
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header */}
-        <Header 
-          onAddClick={() => setShowAddProduct(true)} 
-          darkMode={darkMode}
-          toggleTheme={toggleTheme}
-        />
+        {/* Header (No Logout Button) */}
+        <Header onAddClick={openAddModal} darkMode={darkMode} toggleTheme={toggleTheme} />
 
-        {/* Stats */}
+        {/* Stats & Leaderboard */}
         <StatsDashboard products={products} darkMode={darkMode} />
 
         {/* Action Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Record Sale Card */}
             <button 
               onClick={() => setShowRecordSale(true)}
               className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl text-left flex items-center justify-between ${
@@ -181,16 +180,15 @@ export default function InventoryManagement() {
               }`}
             >
               <div>
-                <h3 className={`text-lg font-extrabold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                   Record Sale
-                </h3>
-                <p className={`text-sm mt-1 ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Log a new transaction instantly</p>
+                <h3 className={`text-lg font-extrabold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Record Sale</h3>
+                <p className={`text-sm mt-1 ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Log transaction instantly</p>
               </div>
               <div className={`p-3 rounded-full shadow-lg ${darkMode ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white'}`}>
                  <ClipboardList size={24} />
               </div>
             </button>
 
+            {/* Sales History Card */}
             <button 
               onClick={() => setShowHistory(true)}
               className={`relative overflow-hidden group p-4 rounded-2xl border transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl text-left flex items-center justify-between ${
@@ -200,10 +198,8 @@ export default function InventoryManagement() {
               }`}
             >
                <div>
-                <h3 className={`text-lg font-extrabold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                   Sales History
-                </h3>
-                <p className={`text-sm mt-1 ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>View and manage past records</p>
+                <h3 className={`text-lg font-extrabold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Sales History</h3>
+                <p className={`text-sm mt-1 ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>View and manage records</p>
               </div>
               <div className={`p-3 rounded-full shadow-lg ${darkMode ? 'bg-indigo-600 text-white' : 'bg-indigo-500 text-white'}`}>
                  <History size={24} />
@@ -211,11 +207,8 @@ export default function InventoryManagement() {
             </button>
         </div>
 
-
-        {/* Main Content Area */}
-        <div>
-          {/* Tabs */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+        {/* Filters/Tabs */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <div className="flex gap-2 overflow-x-auto pb-2 p-1 no-scrollbar w-full">
               {tabs.map((tab) => (
                 <button
@@ -238,37 +231,42 @@ export default function InventoryManagement() {
                     <span className="text-xs font-bold uppercase tracking-wider">Total Items: {getFilteredProducts().length}</span>
                 </div>
             )}
-          </div>
+        </div>
 
-          {/* --- MODALS --- */}
-          {showRecordSale && (
-            <RecordSaleModal 
-              products={products} 
-              onRecordSale={handleRecordSale}
-              onClose={() => setShowRecordSale(false)}
-              darkMode={darkMode} 
-            />
-          )}
+        {/* --- MODALS --- */}
+        
+        {/* Record Sale */}
+        {showRecordSale && (
+          <RecordSaleModal 
+            products={products} 
+            onRecordSale={handleRecordSale} 
+            onClose={() => setShowRecordSale(false)}
+            darkMode={darkMode} 
+          />
+        )}
 
-          {showAddProduct && (
-            <AddProductForm 
-              onSave={handleAddProduct}
-              onCancel={() => setShowAddProduct(false)} 
-              darkMode={darkMode}
-            />
-          )}
+        {/* Add/Edit Product Form */}
+        {showAddProduct && (
+          <AddProductForm 
+            initialData={editingProduct}
+            onSave={handleSaveProduct}
+            onCancel={() => { setShowAddProduct(false); setEditingProduct(null); }} 
+            darkMode={darkMode}
+          />
+        )}
 
-          {showHistory && (
-            <SalesHistoryModal 
-              products={products}
-              onClose={() => setShowHistory(false)}
-              onDeleteSale={requestDeleteSale}
-              darkMode={darkMode}
-            />
-          )}
+        {/* Sales History */}
+        {showHistory && (
+          <SalesHistoryModal 
+            products={products}
+            onClose={() => setShowHistory(false)}
+            onDeleteSale={requestDeleteSale}
+            darkMode={darkMode}
+          />
+        )}
 
-          {/* --- PRODUCT GRID --- */}
-          <div className="space-y-4">
+        {/* --- PRODUCT GRID --- */}
+        <div className="space-y-4">
             {getFilteredProducts().length === 0 ? (
               <div className={`text-center py-16 rounded-3xl border border-dashed ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}>
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
@@ -285,7 +283,8 @@ export default function InventoryManagement() {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onUpdate={handleUpdateProduct}
+                    onUpdate={handleSaveProduct}
+                    onEdit={openEditModal}
                     onDelete={requestDeleteProduct}
                     onRestock={handleRestock}
                     darkMode={darkMode}
@@ -293,36 +292,35 @@ export default function InventoryManagement() {
                 ))}
               </div>
             )}
-          </div>
         </div>
       </div>
 
       {/* --- FLOATING COMPONENTS --- */}
 
-      {/* Profit Calculator Modal */}
+      {/* 1. Profit Calculator */}
       <ProfitCalculator 
         isOpen={showCalculator} 
         onClose={() => setShowCalculator(false)} 
         darkMode={darkMode} 
       />
 
-      {/* Floating Calculator Button (Bottom Left) */}
+      {/* 2. Toggle Calculator Button */}
       <button
-        onClick={() => setShowCalculator(!showCalculator)} // ✅ TOGGLE LOGIC
+        onClick={() => setShowCalculator(!showCalculator)}
         className={`fixed bottom-8 left-8 p-4 rounded-full shadow-2xl z-50 transition-all duration-300 transform hover:scale-110 flex items-center gap-2 font-bold ${
           darkMode 
             ? 'bg-gray-800 text-indigo-400 border border-gray-700 hover:bg-gray-700' 
             : 'bg-white text-indigo-600 border border-indigo-100 hover:bg-gray-50'
-        } ${showCalculator ? 'ring-4 ring-indigo-500/50 scale-110' : ''}`} // Add ring when active
+        } ${showCalculator ? 'ring-4 ring-indigo-500/50 scale-110' : ''}`}
         title="Profit Calculator"
       >
         <Calculator size={24} />
         <span className="hidden md:inline">Calculator</span>
       </button>
 
-      {/* Floating Add Product Button (Bottom Right) */}
+      {/* 3. Add Product Button */}
       <button
-        onClick={() => setShowAddProduct(true)}
+        onClick={openAddModal}
         className={`fixed bottom-8 right-8 p-4 rounded-full shadow-2xl z-40 transition-all duration-300 transform flex items-center gap-2 font-bold ${
           showFloatingBtn 
             ? 'translate-y-0 opacity-100' 

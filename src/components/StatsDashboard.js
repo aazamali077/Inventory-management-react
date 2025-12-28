@@ -293,8 +293,7 @@ export default function StatsDashboard({ products, darkMode }) {
         shouldAnimate={shouldAnimate}
       />
 
-      {/* 3. TOP PRODUCTS (Now Unified Card) */}
-      <TopProductsCard products={products} darkMode={darkMode} />
+
 
       {/* 4. STOCK STATUS */}
       <div className="col-span-1 md:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -326,6 +325,9 @@ export default function StatsDashboard({ products, darkMode }) {
           darkMode={darkMode}
         />
       </div>
+
+            {/* 3. TOP PRODUCTS (Now Unified Card) */}
+      <TopProductsCard products={products} darkMode={darkMode} />
 
     </div>
   );

@@ -11,6 +11,7 @@ const SaleSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
   // We don't need 'id' here, MongoDB creates a unique '_id' automatically
   name: { type: String, required: true },
+  image: { type: String },
   sku: { type: String, required: true },
   category: { type: String, default: 'Other' },
   price: { type: Number, default: 0 },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, X, TrendingUp, DollarSign } from 'lucide-react';
+import { Calculator, X, TrendingUp, IndianRupeeIcon } from 'lucide-react';
 
 export default function ProfitCalculator({ isOpen, onClose, darkMode }) {
   const [activeTab, setActiveTab] = useState('profit'); 
@@ -184,7 +184,7 @@ export default function ProfitCalculator({ isOpen, onClose, darkMode }) {
                 <p className="text-[10px] font-medium text-gray-400 mt-1">{result.details}</p>
               </div>
               <div className={`p-3 rounded-full ${result.isGood ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                {activeTab === 'profit' ? <TrendingUp size={24} /> : <DollarSign size={24} />}
+                {activeTab === 'profit' ? <TrendingUp size={24} /> : <IndianRupeeIcon size={24} />}
               </div>
             </div>
           ) : (

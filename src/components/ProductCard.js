@@ -1,139 +1,92 @@
-import React, { useState } from 'react';
-import { Edit2, Trash2, Save, AlertTriangle, Plus, Tag } from 'lucide-react';
+import React from 'react';
+import { Package, Trash2, Plus, Edit2, Image as ImageIcon } from 'lucide-react';
 
-export default function ProductCard({ product, onUpdate, onDelete, onRestock, darkMode }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState(product);
-
-  const handleSave = () => {
-    onUpdate(editData);
-    setIsEditing(false);
-  };
-
-  const getPlatformSales = (platform) => product.sales.filter(s => s.platform === platform).reduce((sum, s) => sum + s.quantity, 0);
-  const totalSold = product.sales.reduce((sum, s) => sum + s.quantity, 0);
-  const totalRevenue = totalSold * (parseFloat(product.price) || 0);
-
-  // Styling helpers
-  const inputClass = `p-2 border rounded-lg w-full text-sm ${darkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-gray-50 border-gray-200'}`;
-  const isLowStock = product.totalStock <= product.lowStockThreshold && product.totalStock > 0;
+export default function ProductCard({ product, onUpdate, onDelete, onRestock, onEdit, darkMode }) {
+  
+  const isLowStock = product.totalStock <= product.lowStockThreshold;
   const isOutOfStock = product.totalStock === 0;
 
-  // --- EDIT MODE ---
-  if (isEditing) {
-    return (
-      <div className={`border-2 rounded-2xl p-4 shadow-xl flex flex-col gap-3 relative z-10 ${darkMode ? 'bg-gray-800 border-indigo-500' : 'bg-white border-indigo-100'}`}>
-        <h4 className={`font-bold text-sm ${darkMode ? 'text-indigo-400' : 'text-indigo-900'}`}>Edit Product</h4>
-        <input type="text" value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} className={inputClass} placeholder="Name" />
-        <input type="text" value={editData.sku} onChange={(e) => setEditData({...editData, sku: e.target.value})} className={inputClass} placeholder="SKU" />
-        <div className="grid grid-cols-2 gap-2">
-          <input type="number" value={editData.price} onChange={(e) => setEditData({...editData, price: parseFloat(e.target.value)})} className={inputClass} placeholder="Price" />
-          <input type="number" value={editData.totalStock} onChange={(e) => setEditData({...editData, totalStock: parseInt(e.target.value)})} className={inputClass} placeholder="Stock" />
-        </div>
-        <div className="flex gap-2 mt-2">
-          <button onClick={() => setIsEditing(false)} className={`flex-1 py-2 rounded-lg text-sm font-medium ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>Cancel</button>
-          <button onClick={handleSave} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium flex justify-center items-center gap-1"><Save size={14} /> Save</button>
-        </div>
-      </div>
-    );
-  }
-
-  // --- VIEW MODE (Fixed Backgrounds) ---
-  
-  // Logic: We rely on BORDERS to show status, keeping the background SOLID to prevent glitches.
-  let borderClass = darkMode ? 'border-gray-700' : 'border-gray-100'; // Default
-  if (isOutOfStock) borderClass = darkMode ? 'border-red-600' : 'border-red-300';
-  else if (isLowStock) borderClass = darkMode ? 'border-amber-600' : 'border-amber-300';
-
   return (
-    <div className={`flex flex-col h-full rounded-2xl p-5 border shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative ${
-      darkMode ? 'bg-gray-800' : 'bg-white'
-    } ${borderClass}`}>
+    <div className={`group relative rounded-3xl p-5 border transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
+      darkMode ? 'bg-gray-800 border-gray-700 hover:border-gray-600' : 'bg-white border-gray-100 hover:border-indigo-100'
+    }`}>
       
-      {/* 1. Header: Name & Menu */}
-      <div className="flex justify-between items-start mb-3">
-        <h3 className={`font-bold text-lg leading-tight line-clamp-2 ${darkMode ? 'text-white' : 'text-gray-900'}`} title={product.name}>
-          {product.name}
-        </h3>
-        <div className="flex gap-1 -mr-2">
-          <button onClick={() => setIsEditing(true)} className={`p-1.5 rounded-lg transition ${darkMode ? 'text-gray-500 hover:text-indigo-400 hover:bg-gray-700' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}><Edit2 size={16} /></button>
-          <button onClick={() => onDelete(product.id)} className={`p-1.5 rounded-lg transition ${darkMode ? 'text-gray-500 hover:text-red-400 hover:bg-gray-700' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}><Trash2 size={16} /></button>
-        </div>
-      </div>
-
-      {/* 2. Sub-header: SKU & Category */}
-      <div className="flex items-center gap-2 mb-4 text-xs font-medium">
-        <span className={`px-2 py-1 rounded-md ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
-          {product.sku}
-        </span>
-        <span className={`flex items-center gap-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <Tag size={12} /> {product.category}
-        </span>
-      </div>
-
-      {/* 3. Alerts (Using solid badges instead of full card tint) */}
-      {(isLowStock || isOutOfStock) && (
-        <div className={`mb-4 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-bold ${
-          isOutOfStock 
-            ? (darkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-700')
-            : (darkMode ? 'bg-amber-900 text-amber-100' : 'bg-amber-100 text-amber-700')
+      {/* --- HEADER: Image & Actions --- */}
+      <div className="flex justify-between items-start mb-4">
+        
+        {/* Product Image or Placeholder */}
+        <div className={`relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden ${
+          darkMode ? 'bg-gray-700' : 'bg-gray-100'
         }`}>
-          <AlertTriangle size={14} />
-          {isOutOfStock ? 'Out of Stock!' : 'Low Stock Warning'}
+          {product.image ? (
+            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+          ) : (
+            <Package className={darkMode ? 'text-gray-500' : 'text-gray-400'} size={28} />
+          )}
         </div>
-      )}
 
-      {/* 4. Main Stats (Stock & Revenue) */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className={`p-3 rounded-xl text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-          <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">In Stock</p>
-          <p className={`text-xl font-extrabold ${isOutOfStock ? 'text-red-500' : (darkMode ? 'text-white' : 'text-gray-900')}`}>
+        {/* Action Buttons */}
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* EDIT BUTTON */}
+          <button 
+            onClick={() => onEdit(product)} 
+            className={`p-2 rounded-xl transition ${
+              darkMode ? 'bg-gray-700 text-blue-400 hover:bg-blue-900/30' : 'bg-gray-100 text-blue-600 hover:bg-blue-100'
+            }`}
+            title="Edit Product"
+          >
+            <Edit2 size={16} />
+          </button>
+
+          {/* DELETE BUTTON */}
+          <button 
+            onClick={() => onDelete(product.id)} 
+            className={`p-2 rounded-xl transition ${
+              darkMode ? 'bg-gray-700 text-red-400 hover:bg-red-900/30' : 'bg-gray-100 text-red-600 hover:bg-red-100'
+            }`}
+            title="Delete Product"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Product Info */}
+      <div>
+        <h3 className={`font-bold text-lg mb-1 truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{product.name}</h3>
+        <p className={`text-xs font-medium mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>SKU: {product.sku}</p>
+        
+        <div className="flex justify-between items-center mb-4">
+          <span className={`text-xl font-extrabold ${darkMode ? 'text-white' : 'text-gray-900'}`}>₹{product.price}</span>
+          <div className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+            isOutOfStock ? 'bg-red-100 text-red-700' :
+            isLowStock ? 'bg-amber-100 text-amber-700' :
+            (darkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-100 text-emerald-700')
+          }`}>
+            {isOutOfStock ? 'No Stock' : isLowStock ? 'Low Stock' : 'In Stock'}
+          </div>
+        </div>
+      </div>
+
+      {/* Stock Footer */}
+      <div className={`pt-4 border-t flex items-center justify-between ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+        <div>
+          <span className={`block text-2xl font-black ${isOutOfStock ? 'text-red-500' : (darkMode ? 'text-white' : 'text-gray-900')}`}>
             {product.totalStock}
-          </p>
+          </span>
+          <span className="text-[10px] text-gray-400 font-bold uppercase">Units Left</span>
         </div>
-        <div className={`p-3 rounded-xl text-center ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-          <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Revenue</p>
-          <p className="text-xl font-extrabold text-emerald-500">
-            ₹{totalRevenue.toLocaleString()}
-          </p>
-        </div>
-      </div>
 
-      {/* 5. Platform Grid (Footer) */}
-      <div className="mt-auto">
-        <p className="text-[10px] uppercase font-bold text-gray-400 mb-2">Platform Sales</p>
-        <div className="grid grid-cols-4 gap-1 text-center">
-          <div className={`p-1.5 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p className="text-[9px] text-gray-400">Amz</p>
-            <p className={`font-bold text-xs ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{getPlatformSales('Amazon')}</p>
-          </div>
-          <div className={`p-1.5 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p className="text-[9px] text-gray-400">Flip</p>
-            <p className={`font-bold text-xs ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{getPlatformSales('Flipkart')}</p>
-          </div>
-          <div className={`p-1.5 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p className="text-[9px] text-gray-400">Mee</p>
-            <p className={`font-bold text-xs ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{getPlatformSales('Meesho')}</p>
-          </div>
-          <div className={`p-1.5 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <p className="text-[9px] text-gray-400">Off</p>
-            <p className={`font-bold text-xs ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{getPlatformSales('Offline')}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Restock Overlay */}
-      {(isLowStock || isOutOfStock) && (
         <button 
-          onClick={() => onRestock(product.id)} 
-          className={`mt-4 w-full py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition shadow-md ${
+          onClick={() => onRestock(product.id)}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
             darkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-gray-900 text-white hover:bg-gray-800'
           }`}
         >
-          <Plus size={16} /> Restock ({product.restockQuantity})
+          <Plus size={14} /> Restock
         </button>
-      )}
-
+      </div>
+      
     </div>
   );
 }
